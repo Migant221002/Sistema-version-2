@@ -466,7 +466,7 @@ def get_pagos():
 def create_pago():
     try:
         data = request.get_json()
-        if not data or not all(k in data for k in ['empleado_id', 'libras', 'precio_libra']):
+        if not data or not all(k in data for k in ['empleado_id', 'libras', 'precio_libra', 'fecha_pago']):  # ✅ Se asegura que fecha_pago esté presente
             return jsonify({"message": "Datos incompletos"}), 400
         
         total = float(data['libras']) * float(data['precio_libra'])
@@ -474,8 +474,8 @@ def create_pago():
         connection = get_db_connection()
         if connection and connection.is_connected():
             cursor = connection.cursor()
-            query = "INSERT INTO pagos (empleado_id, libras, precio_libra, total) VALUES (%s, %s, %s, %s)"
-            cursor.execute(query, (data['empleado_id'], data['libras'], data['precio_libra'], total))
+            query = "INSERT INTO pagos (empleado_id, libras, precio_libra, total, fecha_pago) VALUES (%s, %s, %s, %s, %s)"  # ✅ Se añade fecha_pago
+            cursor.execute(query, (data['empleado_id'], data['libras'], data['precio_libra'], total, data['fecha_pago']))  # ✅ Se envía fecha_pago correctamente
             connection.commit()
             new_id = cursor.lastrowid
             cursor.close()
@@ -483,7 +483,8 @@ def create_pago():
             return jsonify({
                 "id": new_id, 
                 "message": "Pago registrado exitosamente",
-                "total": total
+                "total": total,
+                "fecha_pago": data['fecha_pago']  # ✅ Se confirma la fecha guardada
             }), 201
     except Error as e:
         return jsonify({"error": str(e)}), 500
@@ -493,7 +494,7 @@ def create_pago():
 def update_pago(id):
     try:
         data = request.get_json()
-        if not data or not all(k in data for k in ['empleado_id', 'libras', 'precio_libra']):
+        if not data or not all(k in data for k in ['empleado_id', 'libras', 'precio_libra', 'fecha_pago']):  # ✅ Se verifica que fecha_pago esté presente
             return jsonify({"message": "Datos incompletos"}), 400
         
         total = float(data['libras']) * float(data['precio_libra'])
@@ -501,12 +502,15 @@ def update_pago(id):
         connection = get_db_connection()
         if connection and connection.is_connected():
             cursor = connection.cursor()
-            query = "UPDATE pagos SET empleado_id = %s, libras = %s, precio_libra = %s, total = %s WHERE id = %s"
-            cursor.execute(query, (data['empleado_id'], data['libras'], data['precio_libra'], total, id))
+            query = "UPDATE pagos SET empleado_id = %s, libras = %s, precio_libra = %s, total = %s, fecha_pago = %s WHERE id = %s"  # ✅ Se incluye fecha_pago
+            cursor.execute(query, (data['empleado_id'], data['libras'], data['precio_libra'], total, data['fecha_pago'], id))  # ✅ Se envía fecha_pago correctamente
             connection.commit()
             cursor.close()
             connection.close()
-            return jsonify({"message": "Pago actualizado exitosamente"}), 200
+            return jsonify({
+                "message": "Pago actualizado exitosamente",
+                "fecha_pago": data['fecha_pago']  # ✅ Se confirma la fecha guardada
+            }), 200
     except Error as e:
         return jsonify({"error": str(e)}), 500
     return jsonify({"message": "Error al actualizar pago"}), 500
@@ -529,4 +533,3 @@ def delete_pago(id):
 
 if __name__ == '__main__':
     app.run(debug=True, host='127.0.0.1', port=5000)
-    
